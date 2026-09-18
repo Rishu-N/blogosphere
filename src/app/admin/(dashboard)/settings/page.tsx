@@ -125,32 +125,60 @@ export default async function AdminSettingsPage() {
           ))}
         </div>
 
-        <form action={addTaxonomyCategory} className="mt-4 flex flex-wrap items-end gap-3">
+        <form action={addTaxonomyCategory} className="mt-4 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
           <div>
             <label htmlFor="key" className="block text-xs font-medium text-[var(--color-text-muted)]">
               Key
             </label>
-            <input id="key" name="key" required placeholder="travel" className="mt-1 w-32 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-sm text-[var(--color-text)]" />
+            <input
+              id="key"
+              name="key"
+              required
+              placeholder="travel"
+              className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-sm text-[var(--color-text)] sm:w-32"
+            />
           </div>
           <div>
             <label htmlFor="label" className="block text-xs font-medium text-[var(--color-text-muted)]">
               Label
             </label>
-            <input id="label" name="label" required placeholder="Travel" className="mt-1 w-32 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-sm text-[var(--color-text)]" />
+            <input
+              id="label"
+              name="label"
+              required
+              placeholder="Travel"
+              className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-sm text-[var(--color-text)] sm:w-32"
+            />
           </div>
           <div>
             <label htmlFor="hue" className="block text-xs font-medium text-[var(--color-text-muted)]">
               Hue (0-360)
             </label>
-            <input id="hue" name="hue" type="number" min={0} max={360} defaultValue={200} className="mt-1 w-24 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-sm text-[var(--color-text)]" />
+            <input
+              id="hue"
+              name="hue"
+              type="number"
+              min={0}
+              max={360}
+              defaultValue={200}
+              className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-sm text-[var(--color-text)] sm:w-24"
+            />
           </div>
-          <div className="flex-1 min-w-[180px]">
+          <div className="col-span-2 sm:min-w-[180px] sm:flex-1">
             <label htmlFor="keywords" className="block text-xs font-medium text-[var(--color-text-muted)]">
               Keywords (comma-separated)
             </label>
-            <input id="keywords" name="keywords" placeholder="beach, flight, passport" className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-sm text-[var(--color-text)]" />
+            <input
+              id="keywords"
+              name="keywords"
+              placeholder="beach, flight, passport"
+              className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-sm text-[var(--color-text)]"
+            />
           </div>
-          <button type="submit" className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text)]">
+          <button
+            type="submit"
+            className="col-span-2 rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text)] sm:col-span-1"
+          >
             Add category
           </button>
         </form>

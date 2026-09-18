@@ -49,7 +49,7 @@ export default async function AdminArticlesPage() {
                   </td>
                   <td className="px-4 py-3 uppercase text-[var(--color-text-muted)]">{article.format}</td>
                   <td className="px-4 py-3 text-right">
-                    <Link href={`/admin/articles/${article.id}`} className="font-medium text-[var(--color-accent)] hover:underline">
+                    <Link href={`/admin/articles/${article.id}`} className="font-medium text-[var(--color-accent-text)] hover:underline">
                       Manage
                     </Link>
                   </td>

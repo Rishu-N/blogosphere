@@ -21,7 +21,7 @@ export default function PreviewModal() {
         aria-label={article ? article.title : "Article preview"}
       >
         <div className="flex items-start justify-between gap-4">
-          <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-accent)]">Preview</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-accent-text)]">Preview</span>
           <button
             type="button"
             onClick={closePreview}
@@ -49,7 +49,7 @@ export default function PreviewModal() {
             </div>
 
             <div
-              className="prose prose-sm mt-6 max-w-none text-[var(--color-text)] prose-headings:text-[var(--color-text)] prose-a:text-[var(--color-accent)]"
+              className="prose prose-sm mt-6 max-w-none text-[var(--color-text)] prose-headings:text-[var(--color-text)] prose-a:text-[var(--color-accent-text)]"
               dangerouslySetInnerHTML={{ __html: article.excerpt }}
             />
 
@@ -58,7 +58,7 @@ export default function PreviewModal() {
             ) : (
               <Link
                 href={`/articles/${article.slug}`}
-                className="mt-6 inline-flex items-center gap-1 font-medium text-[var(--color-accent)] hover:underline"
+                className="mt-6 inline-flex items-center gap-1 font-medium text-[var(--color-accent-text)] hover:underline"
               >
                 Read the full article &rarr;
               </Link>

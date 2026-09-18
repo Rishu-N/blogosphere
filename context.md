@@ -1,7 +1,7 @@
 # Blogosphere — Project Context
 
 > Living document. Updated at the end of every work session / phase checkpoint.
-> Last updated: 2026-09-18 by Claude (Phase 5 checkpoint)
+> Last updated: 2026-09-18 by Claude (Phase 6 checkpoint -- all 6 phases complete)
 
 ## 1. Vision
 
@@ -27,29 +27,26 @@ source code are the authoritative reference going forward.
 
 ## 2. Current Status (at a glance)
 
-- **Phases 1-5 complete.** Only **Phase 6 (polish & verification) remains.**
-  This session was interrupted by a usage-limit pause/resume partway through
-  Phase 5; the plan file
+- **All 6 phases complete.** This session was interrupted by a usage-limit
+  pause/resume partway through Phase 5; the plan file
   (`/root/.claude/plans/i-need-to-make-robust-balloon.md`) has a "Current
   status" section written at that pause point that's now superseded by this
-  update -- this file is the more current source from here on.
-- Runs via `npm run dev` / `npm run build && npm run start`. Phase 5 was
-  verified end-to-end with a real Chromium browser (Playwright, pre-installed
-  in this environment) driving the actual UI, not just curl/API checks: full
-  auth flow (redirect when unauthenticated, wrong password rejected, correct
-  password logs in, logout actually clears the session), upload -> spellcheck
-  (real typos correctly flagged with real suggestions) -> publish ->
-  background classification -> appears on the public homepage, Settings
-  (blogger bio persists, AI-preset auto-fill works, color tuning persists,
-  taxonomy add works), and Stats (charts render from real activity, CSV
-  export has the right content-type and header row).
+  file, which has stayed the more current source since.
+- Runs via `npm run dev` / `npm run build && npm run start`. The entire app
+  (public site + admin dashboard) was verified end-to-end with a real
+  Chromium browser (Playwright, pre-installed in this environment) driving
+  the actual UI, not just curl/API checks -- see section 4's Phase 5 and
+  Phase 6 entries for exactly what was exercised. **Phase 6's real-browser
+  and real-corrupted-file testing caught three genuine bugs that type-
+  checking, linting, and a clean build all missed** -- see the Key
+  Decisions Log. That's the concrete argument for why this project leans on
+  actually running the app rather than stopping at "it compiles."
 - Not yet deployed anywhere. Deployment target is still an open decision —
-  see section 7. Everything is built assuming a single persistent Node
-  process.
-- Known-open areas: see section 7 and the plan's "Still open for Phase 6"
-  list -- mainly a systematic contrast/a11y sweep across the color engine's
-  hue range, exercising the boot-time stuck-classification sweep against a
-  real crash, and a corrupted-JSON recovery spot-check.
+  see section 7 (the one substantive thing still genuinely open). Everything
+  is built assuming a single persistent Node process.
+- No known open bugs. Remaining items are deliberate, documented scope
+  boundaries (no self-serve password reset, single-process concurrency
+  only, deployment target undecided), not gaps to close later.
 
 ## 3. Architecture Snapshot
 
@@ -109,7 +106,7 @@ source code are the authoritative reference going forward.
   | Barrel | `src/lib/storage/index.ts` | Re-exports the above |
   | Palette | `src/lib/color-engine/palette.ts` | category→hue table + hash fallback, circular-lerp math helpers |
   | Color engine | `src/lib/color-engine/engine.ts` | `computeTheme()` — the read-path algorithm; `computeCurrentTheme()` convenience wrapper |
-  | CSS vars | `src/lib/color-engine/css-vars.ts` | Derives the full role palette (bg/surface/accent/border/text/...) from one hue/sat/lightness |
+  | CSS vars | `src/lib/color-engine/css-vars.ts` | Derives the full role palette (bg/surface/accent/accent-text/border/text/...) from one hue/sat/lightness, contrast-verified (see Key Decisions Log) |
   | AI types/presets | `src/lib/ai/types.ts`, `src/lib/ai/presets.ts` | `AIProviderConfig`, `AIClient`; Anthropic/OpenAI/Gemini base URLs + default models |
   | AI base client | `src/lib/ai/base-client.ts` | Shared `classify()` (prompt + JSON parsing) on top of each provider's `generateText()` |
   | AI providers | `src/lib/ai/providers/{anthropic,openai-compatible,gemini}.ts` | One thin `generateText()` per provider's actual HTTP shape |
@@ -183,7 +180,32 @@ source code are the authoritative reference going forward.
       browser (see section 2). Two real bugs found and fixed only because of
       that real-browser testing -- see the Key Decisions entries below;
       neither would have been caught by type-checking or linting alone.
-- [ ] Phase 6 — Polish & verification
+- [x] 2026-09-18 — Phase 6: found and fixed three real bugs via actual
+      testing rather than reasoning about the code (see Key Decisions Log
+      for full detail on each): (1) a WCAG contrast sweep across the full
+      hue range showed ~90% of hue/saturation/lightness combinations failed
+      contrast for category badges and some failed for the accent button
+      text -- fixed with a dedicated `--color-accent-text` variable and a
+      luminance-based (not lightness-threshold-based) choice for
+      `--color-text-on-accent`; re-swept at 0 failures across 324
+      combinations against the real shipped module. (2) A real corrupted-
+      file test found `updateJsonFile()`'s internal read used the
+      unvalidated `readJsonFile()`, so a corrupted file crashed the WRITE
+      path (an uncaught `JSON.parse` exception -> 500) even though the
+      READ path degraded gracefully -- fixed by routing `updateJsonFile()`
+      through the same schema-validated, log-and-fallback path, verified by
+      re-corrupting both `color-state.json` (malformed JSON) and
+      `settings.json` (schema mismatch) and confirming both now log loudly
+      and self-heal on the next write instead of 500ing. Also hardened
+      `readJsonLines()` to skip an unparseable line rather than fail the
+      whole read. (3) A real mobile-viewport (375px) pass found the AI
+      provider `<select>` overflowing by 7px (no `w-full`) and the taxonomy
+      "add category" mini-form overflowing similarly -- both fixed with
+      responsive layout, re-verified at 0px overflow on every admin page.
+      Also verified: the `instrumentation.ts` boot-time sweep against a
+      genuinely stuck `"processing"` article (injected directly into
+      `articles-index.json` with an old `updatedAt`, then a real server
+      restart) correctly recovered it.
 
 ## 5. Key Decisions Log (append-only — strike through if superseded, don't delete)
 
@@ -265,6 +287,58 @@ source code are the authoritative reference going forward.
   seed article's excerpt in `data/articles-index.json` was updated to
   match). Found by actually looking at a rendered screenshot, not by
   reading the code.
+- 2026-09-18 — **Two accent CSS variables exist on purpose: `--color-accent`
+  (backgrounds -- buttons, the active dot -- keeps the full drifting
+  lightness/saturation range, since visual variety there is the point) and
+  `--color-accent-text` (text color against light surfaces -- lightness
+  locked to 25%, saturation capped at 65%).** A programmatic WCAG contrast
+  sweep (36 hues x 3 saturations x 3 lightnesses = 324 combinations, run
+  against the real `deriveCssVars()`, not a hand-copy) found that using
+  `--color-accent` directly as text color against `--color-accent-soft` or
+  `--color-surface` failed the 4.5:1 minimum at ~90% of combinations --
+  yellow/yellow-green hues (45-165 deg) read as much higher luminance than
+  blue/red/purple at the identical HSL lightness, which a naive
+  "just use the accent color as text" design doesn't account for. Never
+  reintroduce `text-[var(--color-accent)]` for actual text -- grep for it;
+  it should always be zero matches (`--color-accent-text` is the only
+  variable meant for that). `--color-accent-soft`'s lightness also got a
+  floor (`Math.max(88, ...)`, was `Math.min(96, l + 42)` alone) since low
+  baseline lightness values pushed it too dark for the badge pairing to
+  clear 4.5:1 at worst-case hues.
+- 2026-09-18 — **`--color-text-on-accent` (text ON TOP of the
+  `--color-accent` background, e.g. button labels) is chosen by comparing
+  both candidates' actual WCAG contrast ratio against the computed accent
+  color, not a `lightness > 55` threshold.** The threshold version passed
+  the sweep above at most hues but failed at yellow (hue ~45-90) for the
+  same perceived-luminance reason. The luminance-comparison approach's
+  worst case across the entire hue range is proven to be ~4.09:1 (the
+  hue-independent crossover point where black-text-contrast equals
+  white-text-contrast) -- comfortably above the 3:1 minimum for
+  button-sized text, verified both mathematically and by eyeballing a
+  screenshot at the actual worst-case hue (60 deg, forced via a temporary
+  `color-state.json` baseline override).
+- 2026-09-18 — **`updateJsonFile()` now requires a zod schema and reads via
+  the same validated/graceful-fallback path as `readValidatedJsonFile()`**
+  (signature changed to `updateJsonFile(filePath, schema, fallback, mutator,
+  label)` -- all 8 call sites across `articles-store.ts`,
+  `color-state-store.ts`, `settings-store.ts`, and `hero-generator.ts`
+  updated). Previously it read via the plain unvalidated `readJsonFile()`,
+  so a corrupted file crashed any WRITE (e.g. `colorStateStore.recordEvent`
+  on every article view) with an uncaught `JSON.parse` exception, even
+  though a pure READ of the same file degraded gracefully. Found by
+  deliberately corrupting `color-state.json` and hitting the article page.
+  A corrupted file now self-heals the moment anything writes to it (the
+  fallback becomes the new, valid on-disk content).
+- 2026-09-18 — `readJsonLines()` (the activity-log JSONL reader) now skips
+  and logs an individual unparseable line instead of letting one bad line
+  fail the entire read.
+- 2026-09-18 — Mobile (375px) layout fixes: the AI provider `<select>`
+  needed an explicit `w-full` (browsers size a bare `<select>` to its
+  widest `<option>` text, which overflowed the viewport); the taxonomy
+  "add category" mini-form switched from a fixed-width flex row to a
+  responsive 2-column grid that becomes the original flex row at `sm:`.
+  Found via a real 375px-viewport Playwright pass that measured
+  `scrollWidth - clientWidth` on every admin page, not by eyeballing.
 
 ## 6. Data Shapes Reference
 
@@ -292,16 +366,22 @@ original list. Restating the ones still live:)
 - **No self-serve admin password reset** (single owner, no email system) —
   accepted tradeoff; recovery is "regenerate `ADMIN_PASSWORD_HASH` /
   `SESSION_SECRET` and restart."
-- **[Phase 6, still open]** Accessibility/contrast of the algorithmically-
-  drifting palette needs a systematic visual sweep across the hue range —
-  only the default baseline hue has been eyeballed so far.
-- **[Phase 6, still open]** The `instrumentation.ts` boot-time sweep for
-  stuck `"processing"` articles has not been exercised against a real
-  crash/restart (only the manual "Retry classification" button has been
-  tested).
-- **[Phase 6, still open]** Corrupted-JSON recovery (`readValidatedJsonFile`
-  falling back to defaults instead of crashing) has not been exercised
-  against an actually-corrupted file, only reasoned about.
+- ~~Accessibility/contrast of the algorithmically-drifting palette needs a
+  systematic visual sweep across the hue range.~~ **Resolved in Phase 6** --
+  see the Key Decisions Log entries on `--color-accent-text` and the
+  luminance-based `--color-text-on-accent`. Re-running the sweep script
+  (logic now lives in `src/lib/color-engine/css-vars.ts`; see git history
+  for the throwaway sweep script if you want to re-verify after changing
+  the palette math) is the way to check this again if the formulas change.
+- ~~The `instrumentation.ts` boot-time sweep for stuck `"processing"`
+  articles has not been exercised against a real crash/restart.~~
+  **Resolved in Phase 6** -- verified by injecting a stuck article directly
+  into `articles-index.json` with an old `updatedAt` and restarting the
+  server for real; the sweep found it, logged it, and recovered it.
+- ~~Corrupted-JSON recovery has not been exercised against an actually-
+  corrupted file.~~ **Resolved in Phase 6** -- this is the one that found
+  the `updateJsonFile()` bug described above. Now verified against both a
+  malformed-JSON file and a schema-mismatched-but-valid-JSON file.
 
 ## 8. How to Resume Work (for a new agent/person)
 

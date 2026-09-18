@@ -32,7 +32,7 @@ export default function AIProviderForm({ ai }: { ai: PublicAISettings }) {
           name="provider"
           value={provider}
           onChange={(event) => handleProviderChange(event.target.value)}
-          className="mt-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text)]"
+          className="mt-1 w-full max-w-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text)]"
         >
           <option value="anthropic">Anthropic</option>
           <option value="openai">OpenAI</option>

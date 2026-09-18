@@ -30,37 +30,57 @@ export function decayedWeight(entry: { weight: number; lastEventAt: string }, ha
   return entry.weight * Math.pow(0.5, elapsedMs / halfLifeMs);
 }
 
+const LABEL = "color-state.json";
+
 export const colorStateStore: ColorStateStore = {
   async read() {
-    return readValidatedJsonFile(COLOR_STATE_PATH, ColorStateSchema, DEFAULT_COLOR_STATE, "color-state.json");
+    return readValidatedJsonFile(COLOR_STATE_PATH, ColorStateSchema, DEFAULT_COLOR_STATE, LABEL);
   },
 
   async recordEvent(category) {
-    return updateJsonFile(COLOR_STATE_PATH, DEFAULT_COLOR_STATE, (state) => {
-      const now = Date.now();
-      const nowIso = new Date(now).toISOString();
-      const existing = state.categoryWeights[category];
-      const decayed = existing ? decayedWeight(existing, state.tuning.halfLifeHours, now) : 0;
-      state.categoryWeights[category] = { weight: decayed + 1, lastEventAt: nowIso };
-      state.totalEvents += 1;
-      state.updatedAt = nowIso;
-      return state;
-    });
+    return updateJsonFile(
+      COLOR_STATE_PATH,
+      ColorStateSchema,
+      DEFAULT_COLOR_STATE,
+      (state) => {
+        const now = Date.now();
+        const nowIso = new Date(now).toISOString();
+        const existing = state.categoryWeights[category];
+        const decayed = existing ? decayedWeight(existing, state.tuning.halfLifeHours, now) : 0;
+        state.categoryWeights[category] = { weight: decayed + 1, lastEventAt: nowIso };
+        state.totalEvents += 1;
+        state.updatedAt = nowIso;
+        return state;
+      },
+      LABEL
+    );
   },
 
   async updateTuning(tuning) {
-    return updateJsonFile(COLOR_STATE_PATH, DEFAULT_COLOR_STATE, (state) => {
-      state.tuning = { ...state.tuning, ...tuning };
-      state.updatedAt = new Date().toISOString();
-      return state;
-    });
+    return updateJsonFile(
+      COLOR_STATE_PATH,
+      ColorStateSchema,
+      DEFAULT_COLOR_STATE,
+      (state) => {
+        state.tuning = { ...state.tuning, ...tuning };
+        state.updatedAt = new Date().toISOString();
+        return state;
+      },
+      LABEL
+    );
   },
 
   async reset() {
-    return updateJsonFile(COLOR_STATE_PATH, DEFAULT_COLOR_STATE, (state) => ({
-      ...DEFAULT_COLOR_STATE,
-      tuning: state.tuning,
-      updatedAt: new Date().toISOString(),
-    }));
+    return updateJsonFile(
+      COLOR_STATE_PATH,
+      ColorStateSchema,
+      DEFAULT_COLOR_STATE,
+      (state) => ({
+        ...DEFAULT_COLOR_STATE,
+        tuning: state.tuning,
+        updatedAt: new Date().toISOString(),
+      }),
+      LABEL
+    );
   },
 };

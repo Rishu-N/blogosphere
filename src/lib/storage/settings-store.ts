@@ -75,11 +75,17 @@ export const settingsStore: SettingsStore = {
   },
 
   async update(mutator) {
-    return updateJsonFile(SETTINGS_PATH, DEFAULT_SETTINGS, (current) => {
-      const updated = mutator(current);
-      updated.updatedAt = new Date().toISOString();
-      return updated;
-    });
+    return updateJsonFile(
+      SETTINGS_PATH,
+      SettingsSchema,
+      DEFAULT_SETTINGS,
+      (current) => {
+        const updated = mutator(current);
+        updated.updatedAt = new Date().toISOString();
+        return updated;
+      },
+      "settings.json"
+    );
   },
 
   resolveApiKey(settings) {

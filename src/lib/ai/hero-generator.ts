@@ -94,11 +94,17 @@ export async function refreshHeroPoolIfDue(articles: ArticleMeta[]): Promise<voi
       text: text.trim(),
       createdAt: new Date().toISOString(),
     };
-    await updateJsonFile(HERO_POOL_PATH, DEFAULT_POOL, (current): HeroPool => ({
-      version: 1,
-      lastRefreshAt: new Date().toISOString(),
-      entries: [entry, ...current.entries].slice(0, POOL_SIZE),
-    }));
+    await updateJsonFile(
+      HERO_POOL_PATH,
+      HeroPoolSchema,
+      DEFAULT_POOL,
+      (current): HeroPool => ({
+        version: 1,
+        lastRefreshAt: new Date().toISOString(),
+        entries: [entry, ...current.entries].slice(0, POOL_SIZE),
+      }),
+      "hero-pool.json"
+    );
     await settingsStore.update((s) => {
       s.ai.lastValidatedAt = new Date().toISOString();
       s.ai.lastError = null;

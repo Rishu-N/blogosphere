@@ -9,7 +9,7 @@ export default function Sidebar({ articles }: { articles: ArticleMeta[] }) {
       <ul className="mt-4 space-y-4">
         {articles.map((article) => (
           <li key={article.id}>
-            <p className="text-xs font-medium capitalize text-[var(--color-accent)]">{article.category}</p>
+            <p className="text-xs font-medium capitalize text-[var(--color-accent-text)]">{article.category}</p>
             <PreviewTrigger articleId={article.id} className="text-left font-medium text-[var(--color-text)] hover:underline">
               {article.title}
             </PreviewTrigger>

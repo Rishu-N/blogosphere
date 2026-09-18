@@ -64,7 +64,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             {new Date(article.date).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
           </time>
           <span aria-hidden="true">&middot;</span>
-          <span className="rounded-full bg-[var(--color-accent-soft)] px-2 py-0.5 font-medium capitalize text-[var(--color-accent)]">
+          <span className="rounded-full bg-[var(--color-accent-soft)] px-2 py-0.5 font-medium capitalize text-[var(--color-accent-text)]">
             {article.category}
           </span>
           <span aria-hidden="true">&middot;</span>
@@ -84,7 +84,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         )}
 
         <div
-          className="prose mt-8 max-w-none text-[var(--color-text)] prose-headings:text-[var(--color-text)] prose-a:text-[var(--color-accent)]"
+          className="prose mt-8 max-w-none text-[var(--color-text)] prose-headings:text-[var(--color-text)] prose-a:text-[var(--color-accent-text)]"
           dangerouslySetInnerHTML={{ __html: html }}
         />
       </article>

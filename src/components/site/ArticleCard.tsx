@@ -10,7 +10,7 @@ export default function ArticleCard({ article }: { article: ArticleMeta }) {
           {new Date(article.date).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
         </time>
         <span aria-hidden="true">&middot;</span>
-        <span className="rounded-full bg-[var(--color-accent-soft)] px-2 py-0.5 font-medium capitalize text-[var(--color-accent)]">
+        <span className="rounded-full bg-[var(--color-accent-soft)] px-2 py-0.5 font-medium capitalize text-[var(--color-accent-text)]">
           {article.category}
         </span>
         <span aria-hidden="true">&middot;</span>
@@ -34,7 +34,7 @@ export default function ArticleCard({ article }: { article: ArticleMeta }) {
       )}
 
       <div className="mt-4 flex items-center gap-4 text-sm font-medium">
-        <PreviewTrigger articleId={article.id} className="text-[var(--color-accent)] hover:underline">
+        <PreviewTrigger articleId={article.id} className="text-[var(--color-accent-text)] hover:underline">
           Preview
         </PreviewTrigger>
         <Link href={`/articles/${article.slug}`} className="text-[var(--color-text-muted)] hover:underline">
