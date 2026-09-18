@@ -1,0 +1,48 @@
+{
+  "name": "blogosphere",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "deepmerge": "^4.3.1",
+    "dictionary-en": "^4.0.0",
+    "hast-util-sanitize": "^5.0.2",
+    "hast-util-to-string": "^3.0.1",
+    "jose": "^6.2.12",
+    "next": "16.3.5",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "rehype-parse": "^9.0.1",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark": "^15.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "retext": "^9.0.0",
+    "retext-english": "^5.0.0",
+    "retext-spell": "^6.1.0",
+    "strip-markdown": "^6.0.0",
+    "ulid": "^3.0.2",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.1.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.5",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-16T14:30:00.000Z",
+  "articles": [
+    {
+      "id": "01M2TD2FMNH03SYCJYF37YQSVW",
+      "slug": "starting-something-new",
+      "title": "Starting Something New",
+      "date": "2026-09-10T09:00:00.000Z",
+      "createdAt": "2026-09-10T09:00:00.000Z",
+      "updatedAt": "2026-09-10T09:00:00.000Z",
+      "category": "life",
+      "tags": ["writing", "beginnings"],
+      "format": "markdown",
+      "sourcePath": "content/articles/01M2TD2FMNH03SYCJYF37YQSVW.md",
+      "excerpt": "<h1>Starting Something New</h1>\n<p>Every blog starts the same way: an empty folder and a stubborn feeling that something is worth writing down. This one is no different, except that the site itself is going to keep changing shape around whatever I end up writing.</p>",
+      "excerptIsFull": false,
+      "status": "published",
+      "classification": { "method": "manual" },
+      "wordCount": 186,
+      "readingTimeMinutes": 1
+    },
+    {
+      "id": "01M2TD2FMRQME09AHYAWA228H8",
+      "slug": "why-i-keep-rebuilding-this-blog",
+      "title": "Why I Keep Rebuilding This Blog",
+      "date": "2026-09-16T14:30:00.000Z",
+      "createdAt": "2026-09-16T14:30:00.000Z",
+      "updatedAt": "2026-09-16T14:30:00.000Z",
+      "category": "technology",
+      "tags": ["meta", "color-engine"],
+      "format": "html",
+      "sourcePath": "content/articles/01M2TD2FMRQME09AHYAWA228H8.html",
+      "excerpt": "<p>I kept rebuilding the same static blog template for years before I asked a more interesting question: what if the site itself reacted to what people actually read, instead of looking identical to every visitor, forever?</p>\n<p>That's the whole premise here. Open a few technology posts and the page leans cooler and bluer. Wander into the travel category and it drifts toward amber. Nothing dramatic — just enough that the site feels inhabited rather than static.</p>",
+      "excerptIsFull": true,
+      "status": "published",
+      "classification": { "method": "manual" },
+      "wordCount": 76,
+      "readingTimeMinutes": 1
+    }
+  ]
+}

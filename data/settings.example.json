@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-18T00:00:00.000Z",
+  "blogger": {
+    "name": "Anonymous Blogger",
+    "bio": "Just another mind on the internet, writing things down.",
+    "avatarUrl": "/avatar-placeholder.svg"
+  },
+  "ai": {
+    "provider": "anthropic",
+    "baseUrl": "https://api.anthropic.com",
+    "model": "claude-sonnet-5",
+    "secret": null,
+    "liveGenerationEnabled": false,
+    "lastValidatedAt": null,
+    "lastError": null
+  },
+  "heroTemplates": [
+    "Hi, I’m {{bloggerName}}. {{bloggerBio}} Right now I’m thinking about “{{articleTitle}}”, filed under {{category}}.",
+    "Welcome back. I’m {{bloggerName}} — {{bloggerBio}} You might like “{{articleTitle}}”, one of my {{category}} pieces.",
+    "{{bloggerName}} here. {{bloggerBio}} Today’s pick: “{{articleTitle}}” ({{category}})."
+  ],
+  "taxonomy": {
+    "categories": [
+      { "key": "technology", "label": "Technology", "hue": 210, "keywords": ["code", "software", "api", "computer", "programming", "app", "tech"] },
+      { "key": "travel", "label": "Travel", "hue": 35, "keywords": ["trip", "travel", "flight", "city", "country", "journey"] },
+      { "key": "life", "label": "Life", "hue": 285, "keywords": ["life", "personal", "reflection", "thoughts", "journal"] },
+      { "key": "food", "label": "Food", "hue": 25, "keywords": ["food", "recipe", "cooking", "restaurant", "meal"] },
+      { "key": "culture", "label": "Culture", "hue": 320, "keywords": ["art", "music", "book", "film", "culture"] },
+      { "key": "uncategorized", "label": "Uncategorized", "hue": 220, "keywords": [] }
+    ]
+  },
+  "colorEngine": {
+    "halfLifeHours": 72,
+    "driftIntensity": 0.6,
+    "activeInfluence": 0.5,
+    "jitterAmount": 6
+  }
+}
