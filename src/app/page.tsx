@@ -1,69 +1,49 @@
-import Image from "next/image";
+import { articlesStore } from "@/lib/storage/articles-store";
+import { getHeroContent, refreshHeroPoolIfDue } from "@/lib/ai/hero-generator";
+import { PreviewProvider } from "@/components/site/PreviewContext";
+import PreviewModal from "@/components/site/PreviewModal";
+import Hero from "@/components/site/Hero";
+import ArticleList from "@/components/site/ArticleList";
+import Sidebar from "@/components/site/Sidebar";
+import type { ArticleMeta } from "@/lib/storage/types";
 
-export default function Home() {
+// Load-bearing, same reason as layout.tsx: the sidebar's random pick and
+// the color-engine-dependent hero must be fresh every visit, never cached.
+export const dynamic = "force-dynamic";
+
+function pickRandomDistinct(items: ArticleMeta[], count: number): ArticleMeta[] {
+  const pool = [...items];
+  const picked: ArticleMeta[] = [];
+  while (pool.length > 0 && picked.length < count) {
+    const index = Math.floor(Math.random() * pool.length);
+    picked.push(pool.splice(index, 1)[0]);
+  }
+  return picked;
+}
+
+export default async function HomePage() {
+  const articles = await articlesStore.list();
+  const published = articles.filter((a) => a.status === "published");
+
+  const hero = await getHeroContent(published);
+  // Fire-and-forget: tops up the hero pool in the background if it's due.
+  // Never awaited -- see /context.md for why that's safe on a persistent
+  // Node process and what would need to change on serverless.
+  void refreshHeroPoolIfDue(published);
+
+  const highlightPool = published.filter((a) => a.id !== hero.featuredArticle?.id);
+  const highlighted = pickRandomDistinct(highlightPool, 3);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <PreviewProvider>
+      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+        <Hero hero={hero} />
+        <div className="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-[1fr_280px]">
+          <ArticleList articles={published} />
+          <Sidebar articles={highlighted} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+      <PreviewModal />
+    </PreviewProvider>
   );
 }

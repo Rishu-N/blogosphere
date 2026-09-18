@@ -1,7 +1,7 @@
 # Blogosphere — Project Context
 
 > Living document. Updated at the end of every work session / phase checkpoint.
-> Last updated: 2026-09-18 by Claude (Phase 1 checkpoint)
+> Last updated: 2026-09-18 by Claude (Phase 2/3/4 checkpoint)
 
 ## 1. Vision
 
@@ -27,13 +27,25 @@ source code are the authoritative reference going forward.
 
 ## 2. Current Status (at a glance)
 
-- **Phase: 1 (Foundation & storage layer) — nearly complete, about to commit.**
-- Runs via `npm run dev` (not yet verified end-to-end — no UI exists yet).
-- Not yet deployed anywhere. Deployment target is still an open decision — see
-  section 7. Everything is built assuming a single persistent Node process.
-- Known-empty areas: there is no UI yet at all (no homepage content beyond the
-  Next.js scaffold default, no color engine, no AI code, no admin dashboard).
-  Phases 2-6 are all still pending.
+- **Phases 1-4 complete** (foundation/storage, public site UI, color engine,
+  AI abstraction all built together since the homepage genuinely depends on
+  all three). **Phase 5 (admin dashboard) and Phase 6 (polish) still pending.**
+- Runs via `npm run dev` / `npm run build && npm run start`. Verified
+  end-to-end with a real production build + server: homepage renders with
+  the ambient theme injected on `<html>`, hero shows template-filled bio
+  text (AI is off by default), article list + sidebar render, `/articles/
+  [slug]` renders full sanitized content, `POST /api/preview` returns the
+  right article + freshly-computed CSS vars and logs an activity event,
+  an unknown articleId correctly 404s, and `data/color-state.json` +
+  `data/activity-log.jsonl` are created lazily on first write and correctly
+  stay untracked in git.
+- Not yet deployed anywhere. Deployment target is still an open decision —
+  see section 7. Everything is built assuming a single persistent Node
+  process.
+- Known-empty areas: no admin dashboard yet at all (no auth, no upload, no
+  settings/stats UI) — everything currently in `data/settings.json` is
+  whatever the defaults produce; there's no way to change it except editing
+  JSON by hand until Phase 5 lands.
 
 ## 3. Architecture Snapshot
 
@@ -72,6 +84,21 @@ source code are the authoritative reference going forward.
   | Settings store | `src/lib/storage/settings-store.ts` | Blogger/AI/taxonomy/color-tuning config; `readPublic()` strips the API key |
   | Secret encryption | `src/lib/ai/secret.ts` | AES-256-GCM encrypt/decrypt for the AI provider API key, keyed by `SETTINGS_ENCRYPTION_KEY` |
   | Barrel | `src/lib/storage/index.ts` | Re-exports the above |
+  | Palette | `src/lib/color-engine/palette.ts` | category→hue table + hash fallback, circular-lerp math helpers |
+  | Color engine | `src/lib/color-engine/engine.ts` | `computeTheme()` — the read-path algorithm; `computeCurrentTheme()` convenience wrapper |
+  | CSS vars | `src/lib/color-engine/css-vars.ts` | Derives the full role palette (bg/surface/accent/border/text/...) from one hue/sat/lightness |
+  | AI types/presets | `src/lib/ai/types.ts`, `src/lib/ai/presets.ts` | `AIProviderConfig`, `AIClient`; Anthropic/OpenAI/Gemini base URLs + default models |
+  | AI base client | `src/lib/ai/base-client.ts` | Shared `classify()` (prompt + JSON parsing) on top of each provider's `generateText()` |
+  | AI providers | `src/lib/ai/providers/{anthropic,openai-compatible,gemini}.ts` | One thin `generateText()` per provider's actual HTTP shape |
+  | AI client factory | `src/lib/ai/client.ts` | `createAIClient(config)` dispatch |
+  | Heuristic classifier | `src/lib/ai/heuristic-classify.ts` | Keyword-scoring fallback classifier, zero API calls |
+  | Classifier | `src/lib/ai/classifier.ts` | `classifyArticle()` — tries AI if a key is configured, always falls back to heuristic |
+  | Hero generator | `src/lib/ai/hero-generator.ts` | `getHeroContent()` (template or pool, never calls AI inline) + `refreshHeroPoolIfDue()` (fire-and-forget) |
+  | Content sanitize | `src/lib/content/sanitize.ts` | Shared conservative `rehype-sanitize` schema (no iframe, no inline handlers) |
+  | Content render | `src/lib/content/markdown.ts`, `html.ts`, `render.ts` | Markdown-or-raw-HTML → sanitized HTML, same allowlist either way |
+  | Excerpt | `src/lib/content/excerpt.ts` | "First section, or the whole thing if short" extraction + word count / reading time |
+  | Site components | `src/components/site/*` | `Hero`, `ArticleList`, `ArticleCard`, `Sidebar`, `PreviewContext`/`PreviewTrigger`/`PreviewModal` |
+  | Routes | `src/app/page.tsx`, `src/app/articles/[slug]/page.tsx`, `src/app/api/preview/route.ts` | Homepage, full article page, the preview endpoint — all `force-dynamic` |
 
 ## 4. Completed So Far
 
@@ -91,9 +118,28 @@ source code are the authoritative reference going forward.
       `hero-pool.json`) ignored; `content/articles/*`,
       `data/articles-index.json`, `data/settings.example.json` tracked. Fixed
       a `.env*` glob that would have silently also ignored `.env.example`.
-- [ ] Phase 2 — Public site UI
-- [ ] Phase 3 — Living color engine
-- [ ] Phase 4 — AI provider abstraction
+- [x] 2026-09-18 — Phase 3: color engine (`palette.ts`, `engine.ts`,
+      `css-vars.ts`) — lazy decay, weighted circular mean for long-term
+      drift, baseline→drift→active-preview→jitter blend order, contrast-safe
+      lightness clamp. `POST /api/preview` looks up the article's category
+      itself (never trusts the client), computes theme strictly before
+      recording the event (so the read isn't racing its own write), then
+      logs + records.
+- [x] 2026-09-18 — Phase 4: AI provider abstraction (`ai/types.ts`,
+      `presets.ts`, `base-client.ts`, `providers/*`, `client.ts`) covering
+      Anthropic/OpenAI-compatible/Gemini + a shared `classify()`; heuristic
+      keyword classifier as the always-available fallback; hero generator
+      that only ever fills a template or reads an existing pool entry on the
+      request path (a live AI call only happens in the fire-and-forget pool
+      refresh, never inline).
+- [x] 2026-09-18 — Phase 2: content pipeline (Markdown + raw HTML → sanitized
+      HTML via a shared allowlist; "first section, or the whole article if
+      short" excerpt extraction operating on top-level headings only) and
+      the actual homepage/article-page/preview-modal UI wiring all of the
+      above together. Installed `@tailwindcss/typography` for rendering
+      article HTML. Fixed a Turbopack build-tracing warning on
+      `resolveProjectPath` (see that file's docstring) with a
+      `turbopackIgnore` comment rather than leaving it.
 - [ ] Phase 5 — Admin dashboard
 - [ ] Phase 6 — Polish & verification
 
@@ -122,6 +168,30 @@ source code are the authoritative reference going forward.
 - 2026-09-18 — Commit at the end of each phase (not mid-phase); maintain this
   file at every such checkpoint, per explicit user requirement for a clean
   handoff.
+- 2026-09-18 — Theme CSS variables are consumed via Tailwind v4 arbitrary
+  values (`bg-[var(--color-accent)]`, etc.) throughout components, not via
+  named `@theme` tokens (`bg-accent`). Avoids `@theme`'s auto-generated
+  utility-name collisions/awkwardness (e.g. `--color-text` -> `text-text`)
+  while still getting the "override the CSS var, no rebuild needed"
+  behavior `@theme` tokens would have given.
+- 2026-09-18 — Whenever a route both computes a theme AND records an
+  activity event (article page, `/api/preview`), the theme read MUST be
+  awaited to completion strictly before the record-event write starts —
+  never bundled into the same `Promise.all`. Otherwise the read can race
+  the write and nondeterministically count this exact click as its own
+  history. `colorStateStore.recordEvent`'s write-queue prevents corruption
+  either way, but not this ordering bug.
+- 2026-09-18 — Global CSS rule transitions `background-color`/`border-color`/
+  `color` on `*` (see `globals.css`) for the "smooth shift on preview open"
+  effect. Deliberately avoided adding Tailwind's own `transition-colors`
+  utility to any component, since a class-based rule would win the cascade
+  over the universal-selector rule and could reintroduce an abrupt,
+  differently-timed transition on just that element.
+- 2026-09-18 — `resolveProjectPath`'s dynamic `path.join` triggered a
+  Turbopack build warning (whole-project file tracing). Fixed with a
+  `turbopackIgnore` comment rather than restructuring, since the join's
+  input is always a value this module itself produced, never raw user
+  input — see the docstring in `src/lib/storage/paths.ts`.
 
 ## 6. Data Shapes Reference
 

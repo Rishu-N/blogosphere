@@ -24,7 +24,14 @@ export function articleSourcePath(id: string, format: ArticleFormat): string {
   return path.relative(projectRoot, path.join(ARTICLES_CONTENT_DIR, `${id}.${ext}`));
 }
 
-/** Resolves a stored project-root-relative path (e.g. an article's sourcePath) to an absolute path. */
+/**
+ * Resolves a stored project-root-relative path (e.g. an article's
+ * sourcePath) to an absolute path. `relativePath` is always a value this
+ * module itself produced (via articleSourcePath), never raw user input,
+ * so the dynamic join is safe -- the ignore comment just tells Next's
+ * build-time file tracer not to conservatively bundle the whole project
+ * on account of it (see /context.md for the full explanation).
+ */
 export function resolveProjectPath(relativePath: string): string {
-  return path.join(projectRoot, relativePath);
+  return path.join(/* turbopackIgnore: true */ projectRoot, relativePath);
 }
