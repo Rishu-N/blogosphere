@@ -1,7 +1,7 @@
 # Blogosphere — Project Context
 
 > Living document. Updated at the end of every work session / phase checkpoint.
-> Last updated: 2026-09-18 by Claude (Phase 2/3/4 checkpoint)
+> Last updated: 2026-09-18 by Claude (Phase 5 checkpoint)
 
 ## 1. Vision
 
@@ -27,25 +27,29 @@ source code are the authoritative reference going forward.
 
 ## 2. Current Status (at a glance)
 
-- **Phases 1-4 complete** (foundation/storage, public site UI, color engine,
-  AI abstraction all built together since the homepage genuinely depends on
-  all three). **Phase 5 (admin dashboard) and Phase 6 (polish) still pending.**
-- Runs via `npm run dev` / `npm run build && npm run start`. Verified
-  end-to-end with a real production build + server: homepage renders with
-  the ambient theme injected on `<html>`, hero shows template-filled bio
-  text (AI is off by default), article list + sidebar render, `/articles/
-  [slug]` renders full sanitized content, `POST /api/preview` returns the
-  right article + freshly-computed CSS vars and logs an activity event,
-  an unknown articleId correctly 404s, and `data/color-state.json` +
-  `data/activity-log.jsonl` are created lazily on first write and correctly
-  stay untracked in git.
+- **Phases 1-5 complete.** Only **Phase 6 (polish & verification) remains.**
+  This session was interrupted by a usage-limit pause/resume partway through
+  Phase 5; the plan file
+  (`/root/.claude/plans/i-need-to-make-robust-balloon.md`) has a "Current
+  status" section written at that pause point that's now superseded by this
+  update -- this file is the more current source from here on.
+- Runs via `npm run dev` / `npm run build && npm run start`. Phase 5 was
+  verified end-to-end with a real Chromium browser (Playwright, pre-installed
+  in this environment) driving the actual UI, not just curl/API checks: full
+  auth flow (redirect when unauthenticated, wrong password rejected, correct
+  password logs in, logout actually clears the session), upload -> spellcheck
+  (real typos correctly flagged with real suggestions) -> publish ->
+  background classification -> appears on the public homepage, Settings
+  (blogger bio persists, AI-preset auto-fill works, color tuning persists,
+  taxonomy add works), and Stats (charts render from real activity, CSV
+  export has the right content-type and header row).
 - Not yet deployed anywhere. Deployment target is still an open decision —
   see section 7. Everything is built assuming a single persistent Node
   process.
-- Known-empty areas: no admin dashboard yet at all (no auth, no upload, no
-  settings/stats UI) — everything currently in `data/settings.json` is
-  whatever the defaults produce; there's no way to change it except editing
-  JSON by hand until Phase 5 lands.
+- Known-open areas: see section 7 and the plan's "Still open for Phase 6"
+  list -- mainly a systematic contrast/a11y sweep across the color engine's
+  hue range, exercising the boot-time stuck-classification sweep against a
+  real crash, and a corrupted-JSON recovery spot-check.
 
 ## 3. Architecture Snapshot
 
@@ -68,9 +72,28 @@ source code are the authoritative reference going forward.
     `cacheComponents`** without redesigning how the color engine forces fresh
     renders (it uses Cache Components' `use cache` opt-in model instead,
     which is the opposite default).
-  - The admin auth gate belongs in **`src/proxy.ts`** (exported function
-    named `proxy`), not `middleware.ts` — Next 16 renamed/deprecated
-    Middleware in favor of Proxy. Not yet created (that's Phase 5).
+  - The admin auth gate lives in **`src/proxy.ts`** (exported function named
+    `proxy`), not `middleware.ts` — Next 16 renamed/deprecated Middleware in
+    favor of Proxy. Built in Phase 5; gates `/admin/**` and `/api/admin/**`
+    except `/admin/login` and `/api/admin/login`.
+  - **`dictionary-en` must stay in `serverExternalPackages`** in
+    `next.config.ts`. It loads its `.aff`/`.dic` files via
+    `fs.readFile(new URL(..., import.meta.url))`; bundling it through
+    Turbopack breaks this with `TypeError: The "path" argument must be...
+    Received an instance of URL` (a cross-realm `instanceof URL` mismatch
+    once the module is bundled). Marking it external makes Next.js load it
+    via native `import` instead, where it works correctly. Discovered the
+    hard way via a 500 on the spellcheck action -- don't remove this
+    thinking it's unused config.
+  - **Admin mutations are Next.js Server Actions, not REST routes** — see
+    `src/lib/actions/{articles,settings}.ts`. `<form action={serverAction}>`,
+    `.bind()` for extra arguments (e.g. an article id), and `formAction` on
+    an individual button (to run a different action in the same form, e.g.
+    "Remove key" next to "Save") cover every admin mutation without hand-
+    written fetch/JSON boilerplate. Plain API routes remain only where a raw
+    HTTP contract is genuinely needed: `/api/preview` (client-fetched JSON),
+    `/api/admin/{login,logout}` (cookie set/clear), `/api/admin/stats/export`
+    (file download with a `content-disposition` header).
 - **Module map so far:**
   | Module | Path | Purpose |
   |---|---|---|
@@ -99,6 +122,15 @@ source code are the authoritative reference going forward.
   | Excerpt | `src/lib/content/excerpt.ts` | "First section, or the whole thing if short" extraction + word count / reading time |
   | Site components | `src/components/site/*` | `Hero`, `ArticleList`, `ArticleCard`, `Sidebar`, `PreviewContext`/`PreviewTrigger`/`PreviewModal` |
   | Routes | `src/app/page.tsx`, `src/app/articles/[slug]/page.tsx`, `src/app/api/preview/route.ts` | Homepage, full article page, the preview endpoint — all `force-dynamic` |
+  | Plain text | `src/lib/content/plain-text.ts` | Markdown/HTML -> plain text, for spellcheck and AI classification input |
+  | Spellcheck | `src/lib/spellcheck/check.ts` | `checkSpellingPlainText()` via `retext-spell` + `dictionary-en`, offline, no AI |
+  | Auth | `src/lib/auth/{session,password}.ts` | JWT session cookie (`jose`) + bcrypt password check |
+  | Proxy | `src/proxy.ts` | Admin auth gate (Next 16 Proxy, not Middleware) |
+  | Instrumentation | `src/instrumentation.ts` | Boot-time sweep for articles stuck in `"processing"` |
+  | Admin actions | `src/lib/actions/{articles,settings}.ts` | Every admin mutation as a Server Action (create/update/delete/reclassify article; blogger/AI/hero-templates/color-tuning/taxonomy settings) |
+  | Stats | `src/lib/stats/aggregate.ts` | `computeStatsSummary()` — top articles, category popularity, and a reconstructed hue-history timeline (replays the activity log through `computeDrift()`, no separate history store needed) |
+  | Admin routes | `src/app/admin/**`, `src/app/api/admin/**` | Login page (outside the dashboard layout group), `(dashboard)` route group with nav chrome, articles list/new/detail, settings, stats; `/api/admin/{login,logout}` + `/api/admin/stats/export` |
+  | Admin components | `src/components/admin/*` | `LogoutButton`, `NewArticleForm`, `ArticleEditForm`, `ArticleActions`, `AIProviderForm`, `StatsCharts` |
 
 ## 4. Completed So Far
 
@@ -140,7 +172,17 @@ source code are the authoritative reference going forward.
       article HTML. Fixed a Turbopack build-tracing warning on
       `resolveProjectPath` (see that file's docstring) with a
       `turbopackIgnore` comment rather than leaving it.
-- [ ] Phase 5 — Admin dashboard
+- [x] 2026-09-18 — Phase 5: auth (`src/proxy.ts`, `src/lib/auth/{session,password}.ts`,
+      login/logout routes + login page), upload flow (`NewArticleForm` ->
+      `checkArticleSpelling` -> `createArticle` Server Action, fire-and-forget
+      `classifyAndFinalize`, boot-time sweep in `instrumentation.ts`, manual
+      retry/reclassify/delete via `ArticleActions`), Settings (blogger, AI
+      provider + presets + live-gen toggle, hero templates, color tuning +
+      reset, taxonomy add/remove), Stats (top articles / category popularity
+      / hue-history charts, CSV export). Verified end-to-end with a real
+      browser (see section 2). Two real bugs found and fixed only because of
+      that real-browser testing -- see the Key Decisions entries below;
+      neither would have been caught by type-checking or linting alone.
 - [ ] Phase 6 — Polish & verification
 
 ## 5. Key Decisions Log (append-only — strike through if superseded, don't delete)
@@ -192,6 +234,37 @@ source code are the authoritative reference going forward.
   `turbopackIgnore` comment rather than restructuring, since the join's
   input is always a value this module itself produced, never raw user
   input — see the docstring in `src/lib/storage/paths.ts`.
+- 2026-09-18 — Admin mutations implemented as Next.js Server Actions
+  (`src/lib/actions/*.ts`) rather than the REST-ish `/api/admin/articles`
+  etc. routes originally sketched in the plan. More idiomatic for
+  form-shaped admin UI, less boilerplate, native `FormData` support. Plain
+  routes kept only where a raw HTTP contract is actually needed (see
+  Architecture Snapshot above).
+- 2026-09-18 — `dictionary-en` added to `next.config.ts`'s
+  `serverExternalPackages`. Without it, Turbopack bundles the package's
+  `fs.readFile(new URL(..., import.meta.url))` file-loading in a way that
+  breaks at runtime (`TypeError: ... Received an instance of URL`) — found
+  via a real 500 when exercising the spellcheck Server Action through the
+  actual UI, not caught by `tsc`/`eslint`/`next build`'s type pass. See
+  Architecture Snapshot above.
+- 2026-09-18 — **`.env.local`/`.env.production` values containing literal
+  `$` (e.g. a bcrypt hash in `ADMIN_PASSWORD_HASH`, which looks like
+  `$2b$10$...`) must escape every `$` as `\$`.** `@next/env`'s dotenv-expand
+  step otherwise interprets `$2b`, `$10`, etc. as variable references and
+  silently truncates the value — no error, login just always rejects the
+  correct password. Documented in `.env.example`. Found by direct debugging
+  with `@next/env`'s `loadEnvConfig()` in isolation after the real-browser
+  login test failed with no server-side error to point at it.
+- 2026-09-18 — Content that opens with its own Markdown/HTML `# Title`
+  (matching an `<h1>` after rendering) had its title rendered twice: once
+  from the page's own `<h1>{article.title}</h1>`, once from the body.
+  Fixed by stripping a single **leading** `<h1>` inside the shared
+  `renderArticleContent()` pipeline (`src/lib/content/render.ts`) — any
+  other heading, anywhere else in the content, is left untouched. Applies
+  uniformly to the full article page and the cached preview excerpt (the
+  seed article's excerpt in `data/articles-index.json` was updated to
+  match). Found by actually looking at a rendered screenshot, not by
+  reading the code.
 
 ## 6. Data Shapes Reference
 
@@ -208,8 +281,9 @@ original list. Restating the ones still live:)
 
 - **Deployment target is still undecided.** If this is ever deployed to an
   ephemeral/serverless target with no persistent volume, every JSON/content
-  file — including the encrypted AI key — is lost on redeploy/restart. Needs
-  a decision before Phase 5 is treated as "done-done."
+  file — including the encrypted AI key — is lost on redeploy/restart. Not
+  gating anything right now (the app runs fine locally via `npm start`), but
+  should be resolved before any real deploy.
 - **Concurrency safety is scoped to one Node process.** The write-queue +
   atomic-rename approach fully prevents lost updates/corruption within a
   single process, but does not help if this is ever horizontally scaled or
@@ -218,8 +292,16 @@ original list. Restating the ones still live:)
 - **No self-serve admin password reset** (single owner, no email system) —
   accepted tradeoff; recovery is "regenerate `ADMIN_PASSWORD_HASH` /
   `SESSION_SECRET` and restart."
-- Accessibility/contrast of the algorithmically-drifting palette needs actual
-  visual QA across the hue range once the color engine exists (Phase 6).
+- **[Phase 6, still open]** Accessibility/contrast of the algorithmically-
+  drifting palette needs a systematic visual sweep across the hue range —
+  only the default baseline hue has been eyeballed so far.
+- **[Phase 6, still open]** The `instrumentation.ts` boot-time sweep for
+  stuck `"processing"` articles has not been exercised against a real
+  crash/restart (only the manual "Retry classification" button has been
+  tested).
+- **[Phase 6, still open]** Corrupted-JSON recovery (`readValidatedJsonFile`
+  falling back to defaults instead of crashing) has not been exercised
+  against an actually-corrupted file, only reasoned about.
 
 ## 8. How to Resume Work (for a new agent/person)
 
